@@ -115,43 +115,88 @@ function App() {
 
 function Topbar(){
   return <header className="topbar">
+    <div className="review-ribbon">KURUMSAL DEĞERLENDİRME PROTOTİPİ • CANLI HİZMET DEĞİLDİR</div>
     <div className="container topbar-inner">
       <div className="brand">
         <div className="brand-mark"><Car size={24}/></div>
-        <div><strong>Araç İşlem Merkezi</strong><span>Bağımsız dijital talep platformu</span></div>
+        <div><strong>Ulaşım Hizmetleri Dijital İşlem Merkezi</strong><span>Kurumsal değerlendirme prototipi</span></div>
       </div>
-      <a href="#admin" className="admin-link"><LayoutDashboard size={17}/> Yönetim</a>
+      <div className="top-actions">
+        <span className="security-chip"><ShieldCheck size={16}/> Güvenli Tasarım</span>
+        <a href="#admin" className="admin-link"><LayoutDashboard size={17}/> Yönetim</a>
+      </div>
     </div>
   </header>
 }
 function Home({chooseService}){
   return <>
-    <section className="hero">
+    <section className="hero premium-hero">
       <div className="container hero-grid">
         <div>
-          <span className="eyebrow"><ShieldCheck size={16}/> Hızlı • Kolay • Takip Edilebilir</span>
-          <h1>Araç işlemleriniz için<br/><span>tek ve sade bir merkez.</span></h1>
-          <p>İhtiyacınız olan işlemi seçin. Bilgilerinizi adım adım girin ve talebinizi güvenli biçimde oluşturun.</p>
+          <span className="eyebrow"><ShieldCheck size={16}/> KURUMSAL DİJİTAL HİZMET PROTOTİPİ</span>
+          <h1>Araç işlemlerinde<br/><span>hızlı, sade ve güvenli deneyim.</span></h1>
+          <p>Vatandaşların araçla ilgili dijital taleplerini tek bir merkezden, anlaşılır adımlarla ve izlenebilir süreçlerle yönetmek için tasarlanmış kurumsal servis arayüzü.</p>
+          <div className="hero-actions">
+            <button className="primary hero-primary" onClick={()=>document.getElementById("services")?.scrollIntoView({behavior:"smooth"})}>
+              Hizmetleri Gör <ArrowRight/>
+            </button>
+            <div className="trust-note"><ShieldCheck/><span>Veri minimizasyonu • Açık süreç • Mobil uyum</span></div>
+          </div>
           <div className="hero-points">
-            <div><CheckCircle2/> Kolay başvuru</div><div><CheckCircle2/> Mobil uyumlu</div><div><CheckCircle2/> Talep takibi</div>
+            <div><CheckCircle2/> Kolay başvuru</div>
+            <div><CheckCircle2/> Adım adım işlem</div>
+            <div><CheckCircle2/> Yönetilebilir talep akışı</div>
           </div>
         </div>
-        <div className="hero-card">
-          <div className="hero-card-head"><TicketCheck/><div><small>DİJİTAL İŞLEM</small><b>3 adımda tamamlayın</b></div></div>
+        <div className="hero-card executive-card">
+          <div className="executive-badge">KURUMSAL DEĞERLENDİRME</div>
+          <div className="hero-card-head"><TicketCheck/><div><small>DİJİTAL İŞLEM MİMARİSİ</small><b>Vatandaş odaklı 3 aşamalı akış</b></div></div>
           <div className="steps"><span className="active">1</span><i></i><span>2</span><i></i><span>3</span></div>
-          <p>Hizmeti seçin → araç bilginizi girin → talebinizi oluşturun.</p>
+          <div className="mini-metrics">
+            <div><b>3</b><span>Temel hizmet</span></div>
+            <div><b>1</b><span>Merkezi talep akışı</span></div>
+            <div><b>100%</b><span>Responsive arayüz</span></div>
+          </div>
+          <p>Prototip; gerçek kurum API’leri ve resmî marka varlıkları eklenmeden değerlendirme amacıyla hazırlanmıştır.</p>
         </div>
       </div>
     </section>
-    <section className="services container">
-      <div className="section-title"><span>HİZMETLER</span><h2>Ne yapmak istiyorsunuz?</h2><p>İşleminizi seçerek devam edin.</p></div>
+
+    <section className="trust-band">
+      <div className="container trust-grid">
+        <div><ShieldCheck/><span><b>Güvenli mimari yaklaşımı</b><small>Sunucu tarafı doğrulama ve yetki kontrolüne hazır</small></span></div>
+        <div><UserRound/><span><b>Vatandaş odaklı deneyim</b><small>Az adım, açık dil, mobil öncelikli yapı</small></span></div>
+        <div><History/><span><b>İzlenebilir süreç</b><small>Talep durumları ve zaman damgaları</small></span></div>
+        <div><LayoutDashboard/><span><b>Operasyon paneli</b><small>Tek ekrandan filtreleme ve yönetim</small></span></div>
+      </div>
+    </section>
+
+    <section id="services" className="services container">
+      <div className="section-title"><span>HİZMET MİMARİSİ</span><h2>Vatandaş hangi işlemi yapmak istiyor?</h2><p>Her işlem, aynı güvenli ve tutarlı kullanıcı deneyimi üzerinden ilerler.</p></div>
       <div className="service-grid">
-        {services.map(({key,title,desc,icon:Icon})=>
-          <button className="service-card" key={key} onClick={()=>chooseService(key)}>
-            <div className="service-icon"><Icon/></div><div><h3>{title}</h3><p>{desc}</p></div><ArrowRight className="arrow"/>
+        {services.map(({key,title,desc,icon:Icon},i)=>
+          <button className="service-card premium-service" key={key} onClick={()=>chooseService(key)}>
+            <div className="service-order">0{i+1}</div>
+            <div className="service-icon"><Icon/></div>
+            <div><h3>{title}</h3><p>{desc}</p><span className="service-cta">İşleme başla <ArrowRight/></span></div>
           </button>)}
       </div>
-      <div className="notice"><ShieldCheck/><div><b>Bilgilendirme</b><p>Bu platform resmî kurum sitesi değildir. İşlemler talep kaydı oluşturmak amacıyla sunulur; sonuç ve uygunluk, bağlı hizmet sağlayıcının doğrulamasına tabidir.</p></div></div>
+
+      <div className="approval-section">
+        <div className="approval-copy">
+          <span className="eyebrow dark"><ShieldCheck size={15}/> DEĞERLENDİRME İÇİN HAZIR</span>
+          <h2>Prototip yalnızca ekran tasarımı değil, bir hizmet modeli sunar.</h2>
+          <p>Kullanıcı deneyimi, operasyon paneli, veri akışı, durum yönetimi ve entegrasyon katmanı birlikte düşünülmüştür. Gerçek kullanıma geçişte kurum servisleri, kimlik doğrulama ve güvenlik kontrolleri bu mimariye eklenebilir.</p>
+        </div>
+        <div className="approval-cards">
+          <div><b>01</b><span>API entegrasyonuna hazır servis katmanı</span></div>
+          <div><b>02</b><span>KVKK ve veri minimizasyonu prensipleri</span></div>
+          <div><b>03</b><span>Yetkilendirilmiş admin ve audit log mimarisi</span></div>
+          <div><b>04</b><span>Mobil / masaüstü erişilebilir arayüz</span></div>
+        </div>
+      </div>
+
+      <div className="notice important-notice"><ShieldCheck/><div><b>Kurumsal değerlendirme notu</b><p>Bu sürüm canlı hizmet değildir ve herhangi bir kamu kurumu adına işlem yapmaz. Kurumsal logo, resmî alan adı, gerçek HGS/KM/hasar servisleri ve kurum destek beyanları yalnızca yetkilendirme sonrasında eklenmelidir.</p></div></div>
     </section>
   </>
 }
@@ -233,7 +278,7 @@ function Admin({onHome}){
   return <main className="admin">
     <div className="admin-top"><div className="brand"><div className="brand-mark"><LayoutDashboard/></div><div><strong>Yönetim Paneli</strong><span>Talep merkezi</span></div></div><button className="secondary" onClick={onHome}><ArrowLeft/> Siteye dön</button></div>
     <div className="admin-body">
-      <div className="admin-title"><div><span>GENEL BAKIŞ</span><h1>Talep Yönetimi</h1><p>Tüm kullanıcı başvurularını tek ekrandan görüntüleyin.</p></div><button className="danger" onClick={clear}>Demo Verilerini Temizle</button></div>
+      <div className="admin-title"><div><span>GENEL BAKIŞ</span><h1>Kurumsal Talep Yönetimi</h1><p>Vatandaş başvurularını, işlem tiplerini ve süreç durumlarını tek ekrandan yönetin.</p></div><button className="danger" onClick={clear}>Demo Verilerini Temizle</button></div>
       <div className="stats">
         <Stat icon={History} label="Toplam Talep" value={rows.length}/>
         <Stat icon={CreditCard} label="HGS" value={rows.filter(r=>r.service==="hgs").length}/>
@@ -249,11 +294,11 @@ function Admin({onHome}){
           <td><select value={r.status} onChange={e=>status(r.id,e.target.value)}><option>Yeni</option><option>İnceleniyor</option><option>Tamamlandı</option><option>İptal</option></select></td>
         </tr>):<tr><td colSpan="8" className="empty">Henüz talep yok.</td></tr>}</tbody></table></div>
       </div>
-      <div className="admin-note"><ShieldCheck/><p><b>Üretim notu:</b> Bu demo tarayıcı localStorage kullanır. Gerçek kullanımda Supabase Auth + Row Level Security + KVKK metinleri eklenmeden kişisel veri toplamaya açmayın.</p></div>
+      <div className="admin-note"><ShieldCheck/><p><b>Üretime geçiş kontrolü:</b> Bu değerlendirme sürümü localStorage kullanır. Canlı ortamda merkezi veritabanı, rol bazlı yetkilendirme, audit log, rate limit, KVKK aydınlatma metinleri, açık rıza gerektiren noktalar ve sunucu tarafı doğrulamalar tamamlanmadan kişisel veri toplamaya açılmamalıdır.</p></div>
     </div>
   </main>
 }
 function Stat({icon:Icon,label,value}){return <div className="stat"><div><span>{label}</span><b>{value}</b></div><Icon/></div>}
-function Footer(){return <footer><div className="container"><span>© 2026 Araç İşlem Merkezi</span><span>Bağımsız dijital talep platformu • Resmî kurum değildir.</span></div></footer>}
+function Footer(){return <footer><div className="container footer-grid"><div><b>Ulaşım Hizmetleri Dijital İşlem Merkezi</b><span>Kurumsal değerlendirme prototipi</span></div><div className="footer-meta"><span>Gizlilik yaklaşımı</span><span>Veri minimizasyonu</span><span>Canlı hizmet değildir</span></div></div></footer>}
 
 createRoot(document.getElementById("root")).render(<App />);
