@@ -1,24 +1,41 @@
-# Araç İşlem Merkezi — Demo
+# Araç İşlem Merkezi — Kurumsal V5 CMS
 
-Profesyonel, bağımsız araç işlem talep arayüzü.
+Bu sürümde iki ana çalışma yapıldı:
 
-## Özellikler
-- HGS bakiye yükleme talep akışı (500–3000 TL, 500 TL katları)
-- Türk plaka formatı kontrolü
-- KM ve Hasar sorgulama için 3 saniyelik talep önizleme akışı
-- Talep Sayfası: ad soyad, TR cep telefonu, 16 haneli talep kodu
-- Bilgileri adımlar arasında koruma
-- `#admin` adresinde yönetim paneli
-- Demo taleplerini localStorage'da saklama
-- Mobil uyumlu tasarım
+## 1. Tam mobil uyumluluk
+- Body yatay taşmaları kapatıldı.
+- Grid/flex elemanlarına `min-width: 0` uygulandı.
+- Hero, header, hizmet kartları, form ekranları, talep özeti ve footer mobilde yeniden düzenlendi.
+- Admin tablosu yalnızca kendi kutusu içinde yatay kayar; bütün sayfayı taşırmaz.
+- 600 px ve 370 px için ayrı mobil kırılımları bulunur.
+
+## 2. Admin içinde mini CMS
+`#admin` adresinden:
+- Logo yükleme / silme
+- Header / banner görseli yükleme / silme
+- Marka adı ve header metinleri
+- Hero başlıkları, açıklamalar ve butonlar
+- Güven şeridi
+- Hizmet alanının tüm başlıkları
+- HGS / KM / Hasar kartlarının başlık, açıklama ve görselleri
+- Hizmet kartlarını tek tek gizleme
+- Değerlendirme bölümü
+- Bilgilendirme kutusu
+- İşlem sayfasındaki metinler
+- Talep sayfasındaki tüm metinler
+- Başarı ekranındaki metinler
+- Footer içerikleri
+- Bölümleri görünür / gizli yapma
+- Tema renkleri ve kart köşe yuvarlaklığı
+değiştirilebilir.
+
+Görseller prototipte tarayıcının localStorage alanında Base64 olarak tutulur. Bu yüzden panel 1.8 MB'tan büyük görselleri kabul etmez.
+
+## Üretime geçiş
+Canlı kullanımda içerikler ve görseller localStorage yerine Supabase/PostgreSQL + Storage veya kurumun içerik yönetim altyapısında tutulmalıdır. Admin paneli mutlaka kimlik doğrulama ve rol bazlı erişim ile korunmalıdır.
 
 ## Çalıştırma
 ```bash
 npm install
 npm run dev
 ```
-
-## Üretim uyarısı
-Bu sürüm demo amaçlı localStorage kullanır. Gerçek kişisel veri toplamak için Supabase Auth,
-Row Level Security, sunucu tarafı doğrulama, KVKK aydınlatma metni ve gerekli hukuki izinleri ekleyin.
-Platform resmî kurum gibi sunulmamalıdır.
