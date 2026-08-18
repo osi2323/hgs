@@ -178,7 +178,7 @@ function Home({chooseService}){
           <button className="service-card premium-service" key={key} onClick={()=>chooseService(key)}>
             <div className="service-order">0{i+1}</div>
             <div className="service-icon"><Icon/></div>
-            <div><h3>{title}</h3><p>{desc}</p><span className="service-cta">İşleme başla <ArrowRight/></span></div>
+            <div><h3>{title}</h3><p>{desc}</p><span className="service-cta">Dokun ve İşleme Başla <ArrowRight/></span></div>
           </button>)}
       </div>
 

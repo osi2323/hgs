@@ -65,3 +65,67 @@ body{background:
 @media(max-width:600px){
   .review-ribbon{font-size:8px;text-align:center;padding:0 8px}.trust-grid{grid-template-columns:1fr}.trust-grid>div{border-right:0;border-bottom:1px solid #edf1f5}.hero-actions{align-items:flex-start;flex-direction:column}.approval-cards{grid-template-columns:1fr}.footer-meta{flex-direction:column;gap:5px}.topbar-inner{height:72px}.brand strong{font-size:12px}
 }
+
+
+/* ===== Mobile Service Cards Emphasis ===== */
+@media(max-width:700px){
+  .services{padding-top:46px;padding-bottom:54px}
+  .section-title{padding:0 4px}
+  .section-title>span{font-size:10px;letter-spacing:1.6px}
+  .section-title h2{font-size:28px;line-height:1.12;letter-spacing:-.9px;margin:9px 0 10px}
+  .section-title p{font-size:13px;line-height:1.55;margin:0 auto;max-width:320px}
+
+  .service-grid{display:grid;grid-template-columns:1fr;gap:16px;margin-top:28px}
+  .premium-service{
+    min-height:0;
+    padding:21px 19px 18px;
+    border:2px solid #b7d4f8;
+    border-radius:20px;
+    background:linear-gradient(180deg,#ffffff 0%,#f8fbff 100%);
+    box-shadow:0 14px 34px rgba(22,79,145,.13),0 2px 8px rgba(20,46,76,.06);
+    transform:none;
+  }
+  .premium-service:active{
+    transform:scale(.985);
+    border-color:#2d7fdf;
+    box-shadow:0 8px 20px rgba(30,102,187,.18);
+  }
+  .premium-service:before{
+    width:150px;height:150px;right:-45px;bottom:-55px;
+    background:radial-gradient(circle,rgba(45,127,223,.16),transparent 66%);
+  }
+  .premium-service:after{
+    content:"";
+    position:absolute;left:0;top:0;bottom:0;width:5px;
+    background:linear-gradient(180deg,#58adff,#1f72d5);
+    border-radius:20px 0 0 20px;
+  }
+  .service-order{top:17px;right:18px;font-size:11px;color:#8eabc9}
+  .premium-service .service-icon{
+    width:52px;height:52px;margin-bottom:16px;
+    border:1px solid #cfe2fb;
+    background:linear-gradient(145deg,#edf6ff,#e3f0ff);
+    box-shadow:0 8px 18px rgba(38,113,200,.10);
+  }
+  .premium-service .service-icon svg{width:24px;height:24px}
+  .premium-service h3{font-size:20px;line-height:1.2;margin:0 0 8px;color:#08111e}
+  .premium-service p{font-size:13px;line-height:1.55;min-height:0;max-width:92%;margin-bottom:18px;color:#66788c}
+  .service-cta{
+    width:100%;
+    min-height:48px;
+    margin-top:4px;
+    padding:0 15px;
+    border-radius:13px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:9px;
+    background:linear-gradient(135deg,#1769c8,#2c8bf2);
+    color:#fff;
+    font-size:13px;
+    font-weight:800;
+    letter-spacing:.1px;
+    box-shadow:0 10px 22px rgba(31,113,211,.22);
+  }
+  .service-cta svg{width:18px;height:18px;stroke-width:2.5}
+}
