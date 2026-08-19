@@ -1,3 +1,6 @@
+main-full-ses.txt
+
+
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
@@ -247,57 +250,11 @@ async function unlockRequestAudio(){
 }
 
 async function playRequestDingDong(){
-  const ctx=getRequestAudioContext();
-  if(!ctx) return;
-
   try{
-    if(ctx.state==="suspended") await ctx.resume();
-    if(ctx.state!=="running") return;
-
-    const now=ctx.currentTime;
-    const master=ctx.createGain();
-    const compressor=ctx.createDynamicsCompressor();
-
-    master.gain.setValueAtTime(0.95,now);
-    compressor.threshold.setValueAtTime(-10,now);
-    compressor.knee.setValueAtTime(8,now);
-    compressor.ratio.setValueAtTime(8,now);
-    compressor.attack.setValueAtTime(0.003,now);
-    compressor.release.setValueAtTime(0.18,now);
-
-    master.connect(compressor);
-    compressor.connect(ctx.destination);
-
-    function bell(frequency,start,duration,volume){
-      const osc1=ctx.createOscillator();
-      const osc2=ctx.createOscillator();
-      const gain=ctx.createGain();
-
-      osc1.type="square";
-      osc2.type="sine";
-      osc1.frequency.setValueAtTime(frequency,start);
-      osc2.frequency.setValueAtTime(frequency*2,start);
-
-      gain.gain.setValueAtTime(0.0001,start);
-      gain.gain.exponentialRampToValueAtTime(volume,start+0.012);
-      gain.gain.setValueAtTime(volume,start+duration*0.68);
-      gain.gain.exponentialRampToValueAtTime(0.0001,start+duration);
-
-      osc1.connect(gain);
-      osc2.connect(gain);
-      gain.connect(master);
-
-      osc1.start(start);
-      osc2.start(start);
-      osc1.stop(start+duration+0.03);
-      osc2.stop(start+duration+0.03);
-    }
-
-    // Teneffüs zili gibi güçlü, çift vuruşlu alarm.
-    bell(1046.5,now,0.62,0.52);
-    bell(1318.5,now+0.66,0.62,0.52);
-    bell(1046.5,now+1.34,0.62,0.52);
-    bell(1318.5,now+2.00,0.78,0.56);
+    const audio=new Audio("/notification.mp3");
+    audio.volume=1.0;
+    audio.currentTime=0;
+    await audio.play();
   }catch(err){
     console.error("Talep bildirim sesi çalınamadı:",err);
   }
