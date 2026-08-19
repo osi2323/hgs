@@ -274,8 +274,8 @@ async function playRequestDingDong(){
       osc.stop(start+duration+0.03);
     }
 
-    tone(880,now,0.28,0.16);
-    tone(660,now+0.30,0.38,0.14);
+    tone(880,now,0.34,0.72);
+    tone(660,now+0.32,0.46,0.68);
   }catch(err){
     console.error("Talep bildirim sesi çalınamadı:",err);
   }
