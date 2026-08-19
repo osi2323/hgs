@@ -197,3 +197,38 @@ footer{background:var(--navy);color:#7f91a6;padding:26px 0;font-size:10px}.foote
 .live-error-box>svg{width:20px;flex:none}
 .live-error-box b{font-size:11px}
 .live-error-box p{margin:4px 0 0;font-size:10px;line-height:1.5}
+
+
+/* V9.2 sabit sorgulama ücretleri */
+.fixed-fee-card{
+  margin-top:18px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:15px 16px;
+  border:1px solid #d7e5f4;
+  border-radius:13px;
+  background:linear-gradient(135deg,#f7fbff,#edf6ff);
+}
+.fixed-fee-card span{font-size:11px;color:#60758a;font-weight:700}
+.fixed-fee-card strong{font-size:20px;color:var(--accent);white-space:nowrap}
+.service-price-badge{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:31px;
+  padding:0 10px;
+  margin:0 0 14px;
+  border-radius:9px;
+  border:1px solid #cfe2f7;
+  background:#eef6ff;
+  color:#1768c4;
+  font-size:12px;
+  font-weight:900;
+  letter-spacing:.1px;
+}
+@media(max-width:600px){
+  .fixed-fee-card{padding:13px 14px}
+  .fixed-fee-card strong{font-size:18px}
+}

@@ -76,12 +76,12 @@ const DEFAULT_SITE = {
       image:"", flowKicker:"ARAÇ İŞLEMİ", flowDescription:"Plaka bilginizi girerek devam edin."
     },
     {
-      key:"km", visible:true, title:"KM Sorgulama",
+      key:"km", visible:true, title:"KM Sorgulama", price:125,
       desc:"Plaka bazlı kilometre sorgulama talebi oluşturun ve durumunu takip edin.",
       image:"", flowKicker:"ARAÇ İŞLEMİ", flowDescription:"Plaka bilginizi girerek devam edin."
     },
     {
-      key:"hasar", visible:true, title:"Hasar Sorgulama",
+      key:"hasar", visible:true, title:"Hasar Sorgulama", price:90,
       desc:"Araç hasar geçmişi için plaka bazlı sorgulama talebi oluşturun.",
       image:"", flowKicker:"ARAÇ İŞLEMİ", flowDescription:"Plaka bilginizi girerek devam edin."
     }
@@ -313,7 +313,7 @@ function App() {
     const row={
       id:id(),createdAt:new Date().toISOString(),service,
       serviceTitle:currentService?.title || service,
-      plate:normalizePlate(plate),amount:service==="hgs"?amount:null,
+      plate:normalizePlate(plate),amount:service==="hgs"?amount:(Number(currentService?.price)||null),
       name:form.name.trim(),phone:form.phone.replace(/\D/g,""),
       requestCode:form.code.replace(/\D/g,""),requestExpiry:form.expiry,sixCode:form.sixCode,status:"Yeni"
     };
@@ -409,6 +409,7 @@ function Home({site,chooseService}) {
             <div className="service-order">0{i+1}</div>
             {s.image ? <div className="service-photo"><img src={s.image} alt=""/></div> : <div className="service-icon"><Icon/></div>}
             <div className="service-content"><h3>{s.title}</h3>{s.desc && <p>{s.desc}</p>}
+              {s.key!=="hgs" && Number(s.price)>0 && <div className="service-price-badge">{money(Number(s.price))}</div>}
               <span className="service-cta">{site.servicesSection.buttonText}<ArrowRight/></span>
             </div>
           </button>
@@ -440,6 +441,9 @@ function ServicePage({site,service,plate,setPlate,amount,setAmount,searching,pre
       <label>{f.plateLabel}</label>
       <div className={`plate-input ${plate && !isValidTRPlate(plate)?"invalid":""}`}><span>TR</span><input value={plate} onChange={e=>setPlate(normalizePlate(e.target.value))} placeholder="34ABC123"/></div>
       <small className="helper">{f.plateHelper}</small>
+      {service.key!=="hgs" && Number(service.price)>0 && <div className="fixed-fee-card">
+        <span>İşlem Tutarı</span><strong>{money(Number(service.price))}</strong>
+      </div>}
       {service.key==="hgs" && <>
         <label className="mt">{f.amountLabel}</label>
         <div className="amount-grid">{[500,1000,1500,2000,2500,3000].map(n=><button key={n} onClick={()=>setAmount(n)} className={amount===n?"selected":""}>{money(n)}</button>)}</div>
@@ -481,6 +485,7 @@ function RequestPage({site,service,plate,amount,form,setForm,submit,back}) {
         <span>{r.summaryTitle}</span><h3>{service.title}</h3>
         <div><small>{r.plateText}</small><b>{normalizePlate(plate)}</b></div>
         {service.key==="hgs" && <div><small>{r.amountText}</small><b>{money(amount)}</b></div>}
+        {service.key!=="hgs" && Number(service.price)>0 && <div><small>İşlem Tutarı</small><b>{money(Number(service.price))}</b></div>}
         <div><small>{r.statusText}</small><b className="pending">{r.pendingText}</b></div>
         <hr/><p><ShieldCheck/>{r.privacyText}</p>
       </aside>
@@ -741,6 +746,7 @@ function ContentEditor({draft,update}) {
         <ImageField label="Kart görseli (boşsa ikon görünür)" value={s.image} onChange={v=>update(["services",i,"image"],v)}/>
         <Field label="Kart başlığı" value={s.title} onChange={v=>update(["services",i,"title"],v)}/>
         <Field textarea label="Kart açıklaması" value={s.desc} onChange={v=>update(["services",i,"desc"],v)}/>
+        {s.key!=="hgs" && <label className="editor-field"><span>Sabit işlem tutarı (TL)</span><input type="number" min="0" step="1" value={s.price||0} onChange={e=>update(["services",i,"price"],Number(e.target.value)||0)}/></label>}
         <Field label="İşlem sayfası üst etiketi" value={s.flowKicker} onChange={v=>update(["services",i,"flowKicker"],v)}/>
         <Field label="İşlem sayfası açıklaması" value={s.flowDescription} onChange={v=>update(["services",i,"flowDescription"],v)}/>
       </div>)}
