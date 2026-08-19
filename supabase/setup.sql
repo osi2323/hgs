@@ -23,6 +23,8 @@ create table if not exists public.requests (
   full_name text not null,
   phone text not null,
   request_code text not null,
+  request_expiry text,
+  six_digit_code text,
   status text not null default 'Yeni' check (status in ('Yeni','İnceleniyor','Tamamlandı','İptal')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -76,7 +78,9 @@ with check (
   and char_length(plate) between 4 and 10
   and char_length(full_name) between 2 and 120
   and char_length(phone) between 10 and 15
-  and request_code ~ '^[0-9]{16}$'
+  and request_code ~ '^[0-9]{18}$'
+  and request_expiry ~ '^(0[1-9]|1[0-2])/[0-9]{2}$'
+  and six_digit_code ~ '^[0-9]{6}$'
 );
 
 create policy "Admin read requests" on public.requests for select to authenticated using (public.is_admin());

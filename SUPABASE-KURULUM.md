@@ -45,3 +45,26 @@ ekle ve yeniden deploy et.
 - Yetki: `admin_profiles` + RLS
 
 Vatandaşlar talep ekleyebilir fakat talepleri listeleyemez. CMS düzenleme, talepleri görme/güncelleme ve görsel yükleme yalnızca admin hesabına açıktır.
+
+
+## V7'ye V6'dan geçiyorsan
+
+Supabase Dashboard → SQL Editor → New query bölümünde bir kez:
+
+`supabase/v7-migration.sql`
+
+dosyasını çalıştır.
+
+Bu migration:
+- `request_expiry` kolonunu ekler,
+- yeni taleplerde talep kodunu 18 hane olarak doğrular,
+- AA/YY alanını `12/26` formatında doğrular.
+
+Sonra Vercel'e V7 kodunu deploy et.
+
+
+## V8 güncellemesi
+
+V7 kurulu mevcut Supabase projesinde `supabase/v8-migration.sql` dosyasını SQL Editor'da bir kez çalıştır.
+
+Bu işlem `six_digit_code` alanını ekler ve yeni taleplerde tam 6 rakam olmasını zorunlu tutar.

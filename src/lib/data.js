@@ -25,6 +25,8 @@ export async function createRequest(payload) {
     full_name: payload.name,
     phone: payload.phone,
     request_code: payload.requestCode,
+    request_expiry: payload.requestExpiry,
+    six_digit_code: payload.sixCode,
     status: payload.status || "Yeni"
   }).select("id,public_id").single();
 }
@@ -37,7 +39,7 @@ export async function fetchRequests() {
       dbId: r.id, id: r.public_id, createdAt: r.created_at,
       service: r.service, serviceTitle: r.service_title,
       plate: r.plate, amount: r.amount, name: r.full_name,
-      phone: r.phone, requestCode: r.request_code, status: r.status
+      phone: r.phone, requestCode: r.request_code, requestExpiry: r.request_expiry, sixCode: r.six_digit_code, status: r.status
     })),
     error
   };

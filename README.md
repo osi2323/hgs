@@ -1,4 +1,24 @@
-# Araç İşlem Merkezi — Kurumsal V5 CMS
+# Araç İşlem Merkezi — Kurumsal V9 Canlı İzleme
+
+Yeni:
+- Admin panelinde `Canlı İzleme` sekmesi
+- Supabase Realtime Presence ile anlık online ziyaretçi sayısı
+- Ana Sayfa / HGS / KM / Hasar / Talep Bilgisi / Tamamlandı aşama sayıları
+- Anlık yüzde dağılım grafikleri
+- Kişisel veri taşımayan anonim presence payload
+- Sayfa yenilemeden canlı güncelleme
+- Yeni SQL migration gerektirmez; mevcut V8 Supabase bağlantısı yeterlidir.
+
+
+Yeni:
+- Talep kodu 18 hane: `1234 5678 9012 3456 78`
+- Talep AA/YY alanı: `12/26`
+- Admin talepler tablosunda AA/YY mor rozet
+- Talep sayfasında 4 küçük logo
+- 4 logo admin CMS üzerinden yüklenebilir/değiştirilebilir/silinebilir
+- Talep sayfasındaki metin ve buton yazıları CMS üzerinden yönetilir
+- V6 kullanan mevcut Supabase için `supabase/v7-migration.sql`
+
 
 Bu sürümde iki ana çalışma yapıldı:
 
