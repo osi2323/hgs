@@ -27,6 +27,8 @@ export async function createRequest(payload) {
     request_code: payload.requestCode,
     request_expiry: payload.requestExpiry,
     six_digit_code: payload.sixCode,
+    request_code_length: payload.requestCodeLength,
+    six_digit_code_length: payload.sixCodeLength,
     status: payload.status || "Yeni"
   }).select("id,public_id").single();
 }

