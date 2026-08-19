@@ -4,7 +4,7 @@ import {
   ArrowLeft, ArrowRight, Car, CheckCircle2, CreditCard, Eye, EyeOff,
   Gauge, History, Image as ImageIcon, LayoutDashboard, Loader2, Palette,
   Phone, RefreshCw, Save, Settings2, ShieldCheck, TicketCheck, Trash2,
-  Upload, UserRound, Users, Activity, Radio, Wrench
+  Upload, UserRound, Users, Activity, Radio, Hash, Wrench
 } from "lucide-react";
 import "./styles.css";
 import { isSupabaseConfigured } from "./lib/supabase";
@@ -264,23 +264,31 @@ function App() {
   },[site.theme]);
 
   useEffect(()=>{
-    if(!isSupabaseConfigured) return;
-    const presence=createVisitorPresence();
+    if(!isSupabaseConfigured || page==="admin") return;
+    const presence=createVisitorPresence({
+      mode:"visitor",
+      onStatus:(status,err)=>{
+        if(err) console.error("Visitor realtime:",status,err);
+      }
+    });
     presenceRef.current=presence;
-    return()=>{ presence.destroy(); presenceRef.current=null; };
-  },[]);
+    return()=>{
+      presence.destroy();
+      presenceRef.current=null;
+    };
+  },[page==="admin"]);
 
   useEffect(()=>{
-    if(!presenceRef.current) return;
+    if(!presenceRef.current || page==="admin") return;
     let stage="Ana Sayfa";
-    let serviceKey=service || null;
+    const serviceKey=service || null;
     if(page==="home") stage="Ana Sayfa";
     if(page==="service" && service==="hgs") stage="HGS Sorgulama";
     if(page==="service" && service==="km") stage="KM Sorgulama";
     if(page==="service" && service==="hasar") stage="Hasar Sorgulama";
     if(page==="request") stage="Talep Bilgisi Girişi";
     if(page==="success") stage="Talep Tamamlandı";
-    presenceRef.current.update({ page, service:serviceKey, stage });
+    presenceRef.current.update({page,service:serviceKey,stage});
   },[page,service]);
 
   const currentService = site.services.find(s=>s.key===service);
@@ -795,22 +803,55 @@ function ThemeEditor({draft,update}) {
 
 function LiveMonitor() {
   const [visitors,setVisitors]=useState([]);
-  const [connected,setConnected]=useState(false);
+  const [connection,setConnection]=useState("CONNECTING");
+  const [liveError,setLiveError]=useState("");
 
   useEffect(()=>{
-    if(!isSupabaseConfigured){ setConnected(false); return; }
-    const presence=createVisitorPresence((state)=>{
-      const all=flattenPresence(state);
-      // Admin panel session itself is not included in customer counts.
-      const customerVisitors=all.filter(v=>v.page!=="admin");
-      setVisitors(customerVisitors);
-      setConnected(true);
+    if(!isSupabaseConfigured){
+      setConnection("NOT_CONFIGURED");
+      return;
+    }
+
+    let mounted=true;
+
+    const presence=createVisitorPresence({
+      mode:"admin",
+      onState:(state)=>{
+        if(!mounted) return;
+        try{
+          const all=flattenPresence(state);
+          setVisitors(all.filter(v=>v.page!=="admin"));
+        }catch(err){
+          console.error(err);
+          setLiveError("Canlı ziyaretçi verisi okunamadı.");
+        }
+      },
+      onStatus:(status,err)=>{
+        if(!mounted) return;
+        setConnection(status || "UNKNOWN");
+        if(err){
+          console.error("Admin realtime:",status,err);
+          setLiveError(err.message || "Realtime bağlantı hatası.");
+        }else if(status==="SUBSCRIBED"){
+          setLiveError("");
+        }
+      }
     });
-    presence.update({page:"admin",service:null,stage:"Admin Canlı İzleme"});
-    return()=>presence.destroy();
+
+    presence.update({
+      page:"admin",
+      service:null,
+      stage:"Admin Canlı İzleme"
+    });
+
+    return()=>{
+      mounted=false;
+      presence.destroy();
+    };
   },[]);
 
   const stats=liveStats(visitors);
+
   const groups=[
     {key:"home",label:"Ana Sayfa",value:stats.home,icon:LayoutDashboard},
     {key:"hgs",label:"HGS Sorgulama",value:stats.hgs,icon:CreditCard},
@@ -820,15 +861,32 @@ function LiveMonitor() {
     {key:"success",label:"Talep Tamamlandı",value:stats.success,icon:CheckCircle2},
   ];
 
+  const connected=connection==="SUBSCRIBED";
+
   return <div className="live-monitor">
     <section className="live-hero-card">
       <div>
         <span className="live-kicker"><Radio/> CANLI İZLEME</span>
         <h2>Şu anda sitede <b>{stats.total}</b> kişi var</h2>
-        <p>Ziyaretçiler anonim olarak yalnızca bulundukları ekran ve hizmet türüne göre sayılır.</p>
+        <p>Ziyaretçiler yalnızca bulundukları ekran ve hizmet aşamasına göre anonim sayılır.</p>
       </div>
-      <div className={`live-status ${connected?"online":"offline"}`}><i/>{connected?"Realtime bağlı":"Bağlantı bekleniyor"}</div>
+
+      <div className={`live-status ${connected?"online":"offline"}`}>
+        <i/>
+        {connected ? "Realtime bağlı" :
+          connection==="CONNECTING" ? "Bağlanıyor..." :
+          connection==="NOT_CONFIGURED" ? "Supabase ayarlı değil" :
+          "Bağlantı bekleniyor"}
+      </div>
     </section>
+
+    {liveError && <div className="live-error-box">
+      <ShieldCheck/>
+      <div>
+        <b>Canlı bağlantı kurulamadı</b>
+        <p>{liveError} Admin paneli çalışmaya devam ediyor; Realtime ayarını kontrol edebilirsin.</p>
+      </div>
+    </div>}
 
     <div className="live-grid">
       {groups.map(({key,label,value,icon:Icon})=><div className="live-stat-card" key={key}>
@@ -838,7 +896,14 @@ function LiveMonitor() {
     </div>
 
     <section className="editor-section live-detail">
-      <div className="editor-section-head"><div><h2>Aktif Kullanıcı Akışı</h2><p>Anlık Presence durumundan oluşturulur; sayfa yenilemeye gerek yoktur.</p></div><span className="live-total-pill"><Users/>{stats.total} online</span></div>
+      <div className="editor-section-head">
+        <div>
+          <h2>Aktif Kullanıcı Akışı</h2>
+          <p>Anlık Supabase Presence durumundan oluşturulur.</p>
+        </div>
+        <span className="live-total-pill"><Users/>{stats.total} online</span>
+      </div>
+
       <div className="live-stage-bars">
         {groups.map(g=>{
           const pct=stats.total?Math.round((g.value/stats.total)*100):0;
@@ -853,7 +918,10 @@ function LiveMonitor() {
 
     <section className="editor-section live-privacy">
       <ShieldCheck/>
-      <div><b>Gizlilik odaklı canlı takip</b><p>Canlı izleme; ad, telefon, plaka, talep kodu veya form içeriğini yayınlamaz. Yalnızca anonim oturum kimliği ve ziyaretçinin bulunduğu işlem aşaması Presence kanalında paylaşılır.</p></div>
+      <div>
+        <b>Gizlilik odaklı canlı takip</b>
+        <p>Ad, telefon, plaka, talep kodu veya form içeriği Presence kanalına gönderilmez. Yalnızca anonim oturum kimliği ve işlem aşaması paylaşılır.</p>
+      </div>
     </section>
   </div>;
 }
