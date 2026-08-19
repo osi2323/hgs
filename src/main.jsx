@@ -225,7 +225,61 @@ function validExpiry(v) { return /^(0[1-9]|1[0-2])\/\d{2}$/.test(v); }
 function formatSixCode(v,length=6) { return v.replace(/\D/g,"").slice(0,clampCodeLength(length,6,12)); }
 function validSixCode(v,length=6) { return v.replace(/\D/g,"").length===clampCodeLength(length,6,12); }
 function id() { return "TLP-"+Date.now().toString(36).toUpperCase()+"-"+Math.random().toString(36).slice(2,6).toUpperCase(); }
+
 function money(n) { return new Intl.NumberFormat("tr-TR",{style:"currency",currency:"TRY",maximumFractionDigits:0}).format(n); }
+
+let requestAudioContext = null;
+
+function getRequestAudioContext(){
+  if(typeof window==="undefined") return null;
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  if(!AudioCtx) return null;
+  if(!requestAudioContext) requestAudioContext = new AudioCtx();
+  return requestAudioContext;
+}
+
+async function unlockRequestAudio(){
+  const ctx=getRequestAudioContext();
+  if(!ctx) return;
+  if(ctx.state==="suspended"){
+    try{ await ctx.resume(); }catch{}
+  }
+}
+
+async function playRequestDingDong(){
+  const ctx=getRequestAudioContext();
+  if(!ctx) return;
+
+  try{
+    if(ctx.state==="suspended") await ctx.resume();
+    if(ctx.state!=="running") return;
+
+    const now=ctx.currentTime;
+
+    function tone(frequency,start,duration,volume){
+      const osc=ctx.createOscillator();
+      const gain=ctx.createGain();
+
+      osc.type="sine";
+      osc.frequency.setValueAtTime(frequency,start);
+
+      gain.gain.setValueAtTime(0.0001,start);
+      gain.gain.exponentialRampToValueAtTime(volume,start+0.025);
+      gain.gain.exponentialRampToValueAtTime(0.0001,start+duration);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(start);
+      osc.stop(start+duration+0.03);
+    }
+
+    tone(880,now,0.28,0.16);
+    tone(660,now+0.30,0.38,0.14);
+  }catch(err){
+    console.error("Talep bildirim sesi çalınamadı:",err);
+  }
+}
 
 function App() {
   const [site,setSite] = useState(loadSite);
@@ -584,7 +638,18 @@ function Admin({site,onSiteChange,onHome,profile,localMode=false}) {
   const [filter,setFilter]=useState("all");
   const [saved,setSaved]=useState(false);
   const [loadingRows,setLoadingRows]=useState(true);
+  const soundedRequestIds=useRef(new Set());
   const data=useMemo(()=>filter==="all"?rows:rows.filter(r=>r.service===filter),[rows,filter]);
+
+  useEffect(()=>{
+    const unlock=()=>unlockRequestAudio();
+    window.addEventListener("pointerdown",unlock,{once:true});
+    window.addEventListener("keydown",unlock,{once:true});
+    return()=>{
+      window.removeEventListener("pointerdown",unlock);
+      window.removeEventListener("keydown",unlock);
+    };
+  },[]);
 
   useEffect(()=>{
     let alive=true;
@@ -618,7 +683,17 @@ function Admin({site,onSiteChange,onHome,profile,localMode=false}) {
         .on(
           "postgres_changes",
           {event:"INSERT",schema:"public",table:"requests"},
-          ()=>{
+          (payload)=>{
+            const requestKey =
+              payload?.new?.id ??
+              payload?.new?.public_id ??
+              payload?.commit_timestamp;
+
+            if(requestKey && !soundedRequestIds.current.has(requestKey)){
+              soundedRequestIds.current.add(requestKey);
+              playRequestDingDong();
+            }
+
             reloadRequests();
           }
         )
