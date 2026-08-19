@@ -7,7 +7,7 @@ import {
   Upload, UserRound, Users, Activity, Radio, Hash, Wrench
 } from "lucide-react";
 import "./styles.css";
-import { isSupabaseConfigured } from "./lib/supabase";
+import { isSupabaseConfigured, supabase } from "./lib/supabase";
 import { createVisitorPresence, flattenPresence, liveStats } from "./lib/presence";
 import { fetchSiteContent, saveSiteContent, createRequest, fetchRequests, updateRequestStatus, deleteAllRequests, signInAdmin, signOutAdmin, getSession, getMyAdminProfile, uploadSiteAsset } from "./lib/data";
 
@@ -588,14 +588,51 @@ function Admin({site,onSiteChange,onHome,profile,localMode=false}) {
 
   useEffect(()=>{
     let alive=true;
-    (async()=>{
-      if(!isSupabaseConfigured){ if(alive){setRows(loadRequests());setLoadingRows(false)}; return; }
+    let channel=null;
+
+    async function reloadRequests(){
+      if(!isSupabaseConfigured){
+        if(alive){
+          setRows(loadRequests());
+          setLoadingRows(false);
+        }
+        return;
+      }
+
       const { data,error }=await fetchRequests();
       if(!alive)return;
-      if(error)console.error(error);
-      setRows(data||[]);setLoadingRows(false);
-    })();
-    return()=>{alive=false};
+
+      if(error){
+        console.error("Talepler yüklenemedi:",error);
+      }else{
+        setRows(data||[]);
+      }
+      setLoadingRows(false);
+    }
+
+    reloadRequests();
+
+    if(isSupabaseConfigured && supabase){
+      channel=supabase
+        .channel("admin-requests-live")
+        .on(
+          "postgres_changes",
+          {event:"INSERT",schema:"public",table:"requests"},
+          ()=>{
+            reloadRequests();
+          }
+        )
+        .subscribe((status,err)=>{
+          if(err) console.error("Talepler Realtime:",status,err);
+        });
+    }
+
+    return()=>{
+      alive=false;
+      if(channel && supabase){
+        supabase.removeChannel(channel);
+      }
+    };
   },[]);
 
   function update(path,value){
