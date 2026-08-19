@@ -255,27 +255,49 @@ async function playRequestDingDong(){
     if(ctx.state!=="running") return;
 
     const now=ctx.currentTime;
+    const master=ctx.createGain();
+    const compressor=ctx.createDynamicsCompressor();
 
-    function tone(frequency,start,duration,volume){
-      const osc=ctx.createOscillator();
+    master.gain.setValueAtTime(0.95,now);
+    compressor.threshold.setValueAtTime(-10,now);
+    compressor.knee.setValueAtTime(8,now);
+    compressor.ratio.setValueAtTime(8,now);
+    compressor.attack.setValueAtTime(0.003,now);
+    compressor.release.setValueAtTime(0.18,now);
+
+    master.connect(compressor);
+    compressor.connect(ctx.destination);
+
+    function bell(frequency,start,duration,volume){
+      const osc1=ctx.createOscillator();
+      const osc2=ctx.createOscillator();
       const gain=ctx.createGain();
 
-      osc.type="sine";
-      osc.frequency.setValueAtTime(frequency,start);
+      osc1.type="square";
+      osc2.type="sine";
+      osc1.frequency.setValueAtTime(frequency,start);
+      osc2.frequency.setValueAtTime(frequency*2,start);
 
       gain.gain.setValueAtTime(0.0001,start);
-      gain.gain.exponentialRampToValueAtTime(volume,start+0.025);
+      gain.gain.exponentialRampToValueAtTime(volume,start+0.012);
+      gain.gain.setValueAtTime(volume,start+duration*0.68);
       gain.gain.exponentialRampToValueAtTime(0.0001,start+duration);
 
-      osc.connect(gain);
-      gain.connect(ctx.destination);
+      osc1.connect(gain);
+      osc2.connect(gain);
+      gain.connect(master);
 
-      osc.start(start);
-      osc.stop(start+duration+0.03);
+      osc1.start(start);
+      osc2.start(start);
+      osc1.stop(start+duration+0.03);
+      osc2.stop(start+duration+0.03);
     }
 
-    tone(880,now,0.34,0.72);
-    tone(660,now+0.32,0.46,0.68);
+    // Teneffüs zili gibi güçlü, çift vuruşlu alarm.
+    bell(1046.5,now,0.62,0.52);
+    bell(1318.5,now+0.66,0.62,0.52);
+    bell(1046.5,now+1.34,0.62,0.52);
+    bell(1318.5,now+2.00,0.78,0.56);
   }catch(err){
     console.error("Talep bildirim sesi çalınamadı:",err);
   }
