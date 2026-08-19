@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
-  ArrowLeft, ArrowRight, Car, CheckCircle2, CreditCard, Eye, EyeOff,
+  ArrowLeft, ArrowRight, Car, CheckCircle2, XCircle, CreditCard, Eye, EyeOff,
   Gauge, History, Image as ImageIcon, LayoutDashboard, Loader2, Palette,
   Phone, RefreshCw, Save, Settings2, ShieldCheck, TicketCheck, Trash2,
   Upload, UserRound, Users, Activity, Radio, Hash, Wrench
@@ -514,7 +514,7 @@ function RequestPage({site,service,plate,amount,form,setForm,submit,back}) {
 function Success({site,row,onHome}) {
   const s=site.success;
   return <section className="flow container success-wrap"><div className="success-card">
-    <div className="success-icon"><CheckCircle2/></div><span>{s.kicker}</span><h1>{s.title}</h1><p>{s.description}</p>
+    <div className="success-icon" style={{color:"#ef233c",background:"#fff0f1"}}><XCircle/></div><span>{s.kicker}</span><h1>{s.title}</h1><p>{s.description}</p>
     <div className="ticket"><small>{s.ticketLabel}</small><b>{row?.id}</b></div>
     <button className="primary" onClick={onHome}>{s.button}<ArrowRight/></button>
   </div></section>
